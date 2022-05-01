@@ -1,0 +1,63 @@
+#/etc/prometheus/rules.yml
+# This is basically a set of rules that we can use to basically monitor the node of polkadot and kusama. 
+# This is updated lastly on April 30, 2022
+
+
+"groups:
+  - name: alert_rules
+    rules:
+      - alert: TELEMETRY_name-InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Instance $labels.instance down
+          description: ""[{{ $labels.instance }}] of job [{{ $labels.job }}] has been down for more than 1 minutes.""
+
+      - alert: TELEMETRY_name-HostHighCpuLoad
+        expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode=""idle""}[2m])) * 100) > 75
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host high CPU load (instance Kusama)
+          description: ""Node CPU load is > 75%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}""
+
+      - alert: TELEMETRY_name-HostHighRamLoad
+        expr: (node_memory_MemTotal_bytes - node_memory_MemFree_bytes - (node_memory_Cached_bytes + node_memory_Buffers_bytes)) / node_memory_MemTotal_bytes *100 > 80
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host high RAM usage (instance [{{ $labels.instance }}])
+          description: ""Node Memory RAM usage is > 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}""
+
+      - alert: TELEMETRY_name-HostHighIOUsage
+        expr: irate(node_disk_io_time_seconds_total [5m]) > 0.8
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host high IO usage (instance [{{ $labels.instance }}])
+          description: ""Node Storage IO usage is > 0.8 seconds (max = 1)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}""
+
+# Depending on the installation of OS, please use ifconfig and find the name of your network device, it can be eth0, ensxxx, etc.)
+
+      - alert: TELEMETRY_name-HostHighNetworkRecvEns3
+        expr: irate(node_network_receive_bytes_total{device=""eth0""}[5m])*8/1000000 > 50
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host high Network Receive eth0 (instance [{{ $labels.instance }}])
+          description: ""Node Interface BW Network Receive Eth0 > 50Mbps (usually < 20Mbps)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}""
+
+      - alert: TELEMETRY_name-HostFsCapacity
+        expr: 100 - ((node_filesystem_avail_bytes{mountpoint=""/"",fstype!=""rootfs""} * 100) / node_filesystem_size_bytes{mountpoint=""/"",fstype!=""rootfs""}) > 80
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host FS storage > 80% (instance [{{ $labels.instance }}])
+          description: ""Node File storage available is > 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"""
